@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom'; // <--- Added this import
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -7,18 +8,28 @@ const Login = () => {
     password: ''
   });
   const { email, password } = formData;
+  
+  const navigate = useNavigate(); // <--- Added this line to enable redirection
 
   const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const onSubmit = async e => {
     e.preventDefault();
     try {
+      // Make sure this matches your PORT (5001)
       const res = await axios.post('http://localhost:5001/api/auth/login', formData);
-      localStorage.setItem('token', res.data.token); 
-      navigate('/dashboard');
+      
+      console.log('Login Success:', res.data);
+      
+      // Save the token!
+      localStorage.setItem('token', res.data.token);
+      
+      // Redirect to Dashboard
+      navigate('/dashboard'); 
+      
     } catch (err) {
       console.error(err);
-      alert('Login Failed');
+      alert('Login Failed. Check your email/password.');
     }
   };
 
@@ -51,6 +62,9 @@ const Login = () => {
         <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
           Login
         </button>
+        <p className="mt-4 text-center text-sm">
+          Don't have an account? <Link to="/register" className="text-blue-500">Sign Up</Link>
+        </p>
       </form>
     </div>
   );
