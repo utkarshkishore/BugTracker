@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL } from '../apiConfig'; // <--- Import Config
+import { API_URL } from '../apiConfig';
 
 const TicketModal = ({ ticket, onClose, onUpdate }) => {
   const [comments, setComments] = useState([]);
@@ -12,7 +12,19 @@ const TicketModal = ({ ticket, onClose, onUpdate }) => {
     priority: ''
   });
 
+  // --- FIXED USEEFFECT ---
   useEffect(() => {
+    // Define the function INSIDE the effect to satisfy the linter
+    const fetchComments = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await axios.get(`${API_URL}/comments/${ticket._id}`, {
+          headers: { 'x-auth-token': token }
+        });
+        setComments(res.data);
+      } catch (err) { console.error(err); }
+    };
+
     if (ticket) {
       setEditFormData({
         title: ticket.title,
@@ -21,24 +33,14 @@ const TicketModal = ({ ticket, onClose, onUpdate }) => {
       });
       fetchComments();
     }
-  }, [ticket]);
-
-  const fetchComments = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await axios.get(`${API_URL}/comments/${ticket._id}`, { // <--- Use API_URL
-        headers: { 'x-auth-token': token }
-      });
-      setComments(res.data);
-    } catch (err) { console.error(err); }
-  };
+  }, [ticket]); // Dependency array is now correct
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
     const token = localStorage.getItem('token');
     try {
-      const res = await axios.post(`${API_URL}/comments/${ticket._id}`, // <--- Use API_URL
+      const res = await axios.post(`${API_URL}/comments/${ticket._id}`, 
         { text: commentText }, 
         { headers: { 'x-auth-token': token } }
       );
@@ -50,7 +52,7 @@ const TicketModal = ({ ticket, onClose, onUpdate }) => {
   const handleEditSubmit = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await axios.put(`${API_URL}/tickets/${ticket._id}`, // <--- Use API_URL
+      const res = await axios.put(`${API_URL}/tickets/${ticket._id}`, 
         editFormData, 
         { headers: { 'x-auth-token': token } }
       );
