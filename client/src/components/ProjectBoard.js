@@ -2,22 +2,23 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { FaTrash, FaCommentAlt } from 'react-icons/fa'; // Added Comment Icon
+import { FaTrash, FaCommentAlt } from 'react-icons/fa';
 import Navbar from './Navbar';
-import TicketModal from './TicketModal'; // <--- Import Modal
+import TicketModal from './TicketModal';
 
 const ProjectBoard = () => {
   const { id } = useParams();
   const [tickets, setTickets] = useState([]);
   const [newTask, setNewTask] = useState({ title: '', description: '', status: 'To Do', priority: 'Medium' });
   
-  // Day 10: Filter States
+  // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
 
-  // Day 9: Modal State
+  // Modal State
   const [selectedTicket, setSelectedTicket] = useState(null);
 
+  // Fetch Tickets
   useEffect(() => {
     const fetchTickets = async () => {
       const token = localStorage.getItem('token');
@@ -35,6 +36,7 @@ const ProjectBoard = () => {
 
   const onChange = (e) => setNewTask({ ...newTask, [e.target.name]: e.target.value });
 
+  // Create Ticket
   const onSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -49,8 +51,9 @@ const ProjectBoard = () => {
     }
   };
 
+  // Delete Ticket
   const deleteTicket = async (ticketId) => {
-    if(!window.confirm("Delete ticket?")) return;
+    if(!window.confirm("Are you sure you want to delete this ticket?")) return;
     const token = localStorage.getItem('token');
     try {
       await axios.delete(`http://localhost:5001/api/tickets/${ticketId}`, { headers: { 'x-auth-token': token } });
@@ -58,6 +61,7 @@ const ProjectBoard = () => {
     } catch (err) { console.error(err); }
   };
 
+  // Handle Drag & Drop
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
@@ -72,7 +76,16 @@ const ProjectBoard = () => {
     } catch (err) { console.error(err); }
   };
 
-  // --- DAY 10: FILTER LOGIC ---
+  // --- NEW: Handle Ticket Updates from Modal ---
+  const handleTicketUpdate = (updatedTicket) => {
+    const updatedTickets = tickets.map(t => 
+      t._id === updatedTicket._id ? updatedTicket : t
+    );
+    setTickets(updatedTickets);
+    setSelectedTicket(updatedTicket); // Keep the modal open with fresh data
+  };
+
+  // Filter Logic
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPriority = filterPriority === 'All' || ticket.priority === filterPriority;
@@ -86,11 +99,10 @@ const ProjectBoard = () => {
       <Navbar />
       <div className="p-8">
         
-        {/* Header & Filters */}
+        {/* Header & Controls */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold text-gray-800">Project Board</h1>
           
-          {/* Day 10: Search & Filter Inputs */}
           <div className="flex gap-2">
             <input 
               type="text" 
@@ -125,7 +137,7 @@ const ProjectBoard = () => {
           </form>
         </div>
 
-        {/* Board */}
+        {/* Kanban Board */}
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {columns.map(status => (
@@ -161,7 +173,6 @@ const ProjectBoard = () => {
                                 }`}>
                                   {ticket.priority}
                                 </span>
-                                {/* Comment Icon Trigger */}
                                 <button onClick={() => setSelectedTicket(ticket)} className="text-gray-400 hover:text-blue-500 text-sm">
                                   <FaCommentAlt />
                                 </button>
@@ -178,11 +189,12 @@ const ProjectBoard = () => {
           </div>
         </DragDropContext>
 
-        {/* Day 9: The Modal */}
+        {/* Modal Pop-up */}
         {selectedTicket && (
           <TicketModal 
             ticket={selectedTicket} 
             onClose={() => setSelectedTicket(null)} 
+            onUpdate={handleTicketUpdate} 
           />
         )}
 

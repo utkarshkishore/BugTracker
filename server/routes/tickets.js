@@ -56,11 +56,18 @@ router.delete('/:id', auth, async (req, res) => {
 // @desc    Update ticket status (drag and drop)
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { title, description, priority, status } = req.body;
+    
+    // Find ticket by ID
     let ticket = await Ticket.findById(req.params.id);
     if (!ticket) return res.status(404).json({ msg: 'Ticket not found' });
 
-    ticket.status = status;
+    // Update fields if they are provided in the request
+    if (title) ticket.title = title;
+    if (description) ticket.description = description;
+    if (priority) ticket.priority = priority;
+    if (status) ticket.status = status;
+
     await ticket.save();
     res.json(ticket);
   } catch (err) {
