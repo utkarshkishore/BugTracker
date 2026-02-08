@@ -5,25 +5,21 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { FaTrash, FaCommentAlt } from 'react-icons/fa';
 import Navbar from './Navbar';
 import TicketModal from './TicketModal';
+import { API_URL } from '../apiConfig'; // <--- Import Config
 
 const ProjectBoard = () => {
   const { id } = useParams();
   const [tickets, setTickets] = useState([]);
   const [newTask, setNewTask] = useState({ title: '', description: '', status: 'To Do', priority: 'Medium' });
-  
-  // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
-
-  // Modal State
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  // Fetch Tickets
   useEffect(() => {
     const fetchTickets = async () => {
       const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(`http://localhost:5001/api/tickets/project/${id}`, {
+        const res = await axios.get(`${API_URL}/tickets/project/${id}`, { // <--- Use API_URL
           headers: { 'x-auth-token': token }
         });
         setTickets(res.data);
@@ -36,14 +32,14 @@ const ProjectBoard = () => {
 
   const onChange = (e) => setNewTask({ ...newTask, [e.target.name]: e.target.value });
 
-  // Create Ticket
   const onSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      const res = await axios.post('http://localhost:5001/api/tickets', { ...newTask, projectId: id }, {
-        headers: { 'x-auth-token': token }
-      });
+      const res = await axios.post(`${API_URL}/tickets`, // <--- Use API_URL
+        { ...newTask, projectId: id }, 
+        { headers: { 'x-auth-token': token } }
+      );
       setTickets([...tickets, res.data]);
       setNewTask({ title: '', description: '', status: 'To Do', priority: 'Medium' });
     } catch (err) {
@@ -51,17 +47,17 @@ const ProjectBoard = () => {
     }
   };
 
-  // Delete Ticket
   const deleteTicket = async (ticketId) => {
     if(!window.confirm("Are you sure you want to delete this ticket?")) return;
     const token = localStorage.getItem('token');
     try {
-      await axios.delete(`http://localhost:5001/api/tickets/${ticketId}`, { headers: { 'x-auth-token': token } });
+      await axios.delete(`${API_URL}/tickets/${ticketId}`, { // <--- Use API_URL
+        headers: { 'x-auth-token': token } 
+      });
       setTickets(tickets.filter(t => t._id !== ticketId));
     } catch (err) { console.error(err); }
   };
 
-  // Handle Drag & Drop
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
@@ -72,20 +68,21 @@ const ProjectBoard = () => {
 
     const token = localStorage.getItem('token');
     try {
-      await axios.put(`http://localhost:5001/api/tickets/${draggableId}`, { status: destination.droppableId }, { headers: { 'x-auth-token': token } });
+      await axios.put(`${API_URL}/tickets/${draggableId}`, // <--- Use API_URL
+        { status: destination.droppableId }, 
+        { headers: { 'x-auth-token': token } }
+      );
     } catch (err) { console.error(err); }
   };
 
-  // --- NEW: Handle Ticket Updates from Modal ---
   const handleTicketUpdate = (updatedTicket) => {
     const updatedTickets = tickets.map(t => 
       t._id === updatedTicket._id ? updatedTicket : t
     );
     setTickets(updatedTickets);
-    setSelectedTicket(updatedTicket); // Keep the modal open with fresh data
+    setSelectedTicket(updatedTicket); 
   };
 
-  // Filter Logic
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPriority = filterPriority === 'All' || ticket.priority === filterPriority;
@@ -98,11 +95,8 @@ const ProjectBoard = () => {
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <div className="p-8">
-        
-        {/* Header & Controls */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold text-gray-800">Project Board</h1>
-          
           <div className="flex gap-2">
             <input 
               type="text" 
@@ -124,7 +118,6 @@ const ProjectBoard = () => {
           </div>
         </div>
 
-        {/* Add Ticket Form */}
         <div className="bg-white p-4 rounded shadow mb-8">
           <form onSubmit={onSubmit} className="flex gap-2 flex-wrap">
              <input name="title" value={newTask.title} onChange={onChange} placeholder="New Task Title" className="border p-2 rounded flex-1" required />
@@ -137,7 +130,6 @@ const ProjectBoard = () => {
           </form>
         </div>
 
-        {/* Kanban Board */}
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {columns.map(status => (
@@ -155,27 +147,15 @@ const ProjectBoard = () => {
                             className="bg-white p-3 rounded shadow mb-3 hover:shadow-md transition group relative"
                           >
                             <div className="flex justify-between items-start">
-                                {/* Click Title to Open Modal */}
-                                <h4 
-                                  onClick={() => setSelectedTicket(ticket)} 
-                                  className="font-bold cursor-pointer hover:text-blue-600"
-                                >
-                                  {ticket.title}
-                                </h4>
-                                <button onClick={() => deleteTicket(ticket._id)} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1">
-                                  <FaTrash />
-                                </button>
+                                <h4 onClick={() => setSelectedTicket(ticket)} className="font-bold cursor-pointer hover:text-blue-600">{ticket.title}</h4>
+                                <button onClick={() => deleteTicket(ticket._id)} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1"><FaTrash /></button>
                             </div>
                             <div className="flex justify-between items-center mt-2">
                                 <span className={`text-xs px-2 py-1 rounded inline-block ${
                                   ticket.priority === 'High' ? 'bg-red-100 text-red-800' : 
                                   ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                                }`}>
-                                  {ticket.priority}
-                                </span>
-                                <button onClick={() => setSelectedTicket(ticket)} className="text-gray-400 hover:text-blue-500 text-sm">
-                                  <FaCommentAlt />
-                                </button>
+                                }`}>{ticket.priority}</span>
+                                <button onClick={() => setSelectedTicket(ticket)} className="text-gray-400 hover:text-blue-500 text-sm"><FaCommentAlt /></button>
                             </div>
                           </div>
                         )}
@@ -189,7 +169,6 @@ const ProjectBoard = () => {
           </div>
         </DragDropContext>
 
-        {/* Modal Pop-up */}
         {selectedTicket && (
           <TicketModal 
             ticket={selectedTicket} 
@@ -197,7 +176,6 @@ const ProjectBoard = () => {
             onUpdate={handleTicketUpdate} 
           />
         )}
-
       </div>
     </div>
   );
